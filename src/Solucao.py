@@ -1,0 +1,256 @@
+import random
+import sys
+from collections import Counter
+
+# ----------------------------
+# PARÂMETROS
+# ----------------------------
+
+# Define parameters directly for Colab execution
+#POP = 100
+#GER = 200
+#MUT = 0.05
+#CROSS = 0.8
+
+# The following block is for command-line execution and is not needed in Colab
+try:
+    entrada = input("Digite POP GER MUT CROSS (ex: 100 200 0.05 0.8): ")
+    POP, GER, MUT, CROSS = entrada.split()
+
+    POP = int(POP)
+    GER = int(GER)
+    MUT = float(MUT)
+    CROSS = float(CROSS)
+
+except:
+    print("Erro: entrada inválida. Use o formato: 100 200 0.05 0.8")
+    sys.exit()
+
+# ----------------------------
+# DADOS DO PROBLEMA
+# ----------------------------
+
+dias = ["Seg","Ter","Qua","Qui","Sex","Sab","Dom"]
+faixas = ["Madrugada","Manhã","Almoço","Tarde","Prime Time","Noite"]
+
+programas = {
+"P01":{"genero":"Jornalismo","class":0,"publico":"Geral","exib":5,"aud":[2,6,12,8,18]},
+"P02":{"genero":"Dramaturgia","class":12,"publico":"Adulto","exib":5,"aud":[1,3,7,10,20]},
+"P03":{"genero":"Esporte","class":0,"publico":"Geral","exib":3,"aud":[1,4,8,6,14]},
+"P04":{"genero":"Variedades","class":10,"publico":"Família","exib":2,"aud":[2,5,9,8,16]},
+"P05":{"genero":"Documentário","class":0,"publico":"Família","exib":2,"aud":[3,5,7,6,10]},
+"P06":{"genero":"Ficção","class":14,"publico":"Adulto","exib":2,"aud":[2,3,6,7,15]},
+"P07":{"genero":"Entretenimento","class":0,"publico":"Família","exib":3,"aud":[1,7,14,9,8]},
+"P08":{"genero":"Variedades","class":12,"publico":"Jovem","exib":3,"aud":[2,4,8,7,17]},
+"P09":{"genero":"Cinema","class":16,"publico":"Adulto","exib":2,"aud":[3,2,5,5,14]},
+"P10":{"genero":"Infantil","class":0,"publico":"Criança","exib":5,"aud":[1,8,6,10,3]},
+"P11":{"genero":"Jornalismo","class":0,"publico":"Geral","exib":5,"aud":[2,9,11,7,12]},
+"P12":{"genero":"Ficção","class":10,"publico":"Jovem","exib":2,"aud":[2,3,7,6,13]},
+"P13":{"genero":"Variedades","class":0,"publico":"Adulto","exib":2,"aud":[2,4,8,5,11]},
+"P14":{"genero":"Cinema","class":12,"publico":"Adulto","exib":1,"aud":[2,3,6,7,12]},
+"P15":{"genero":"Variedades","class":0,"publico":"Geral","exib":2,"aud":[3,8,5,3,2]},
+"P16":{"genero":"Esporte","class":0,"publico":"Geral","exib":1,"aud":[1,2,5,4,16]},
+"P17":{"genero":"Ficção","class":16,"publico":"Adulto","exib":2,"aud":[2,2,4,5,14]},
+"P18":{"genero":"Infantil","class":0,"publico":"Criança","exib":3,"aud":[1,9,7,11,2]},
+"P19":{"genero":"Jornalismo","class":0,"publico":"Adulto","exib":1,"aud":[1,3,5,4,9]},
+"P20":{"genero":"Cinema","class":18,"publico":"Adulto","exib":1,"aud":[3,1,2,3,10]},
+}
+
+receita_base = [10,40,80,50,200,90]
+receita_min = [60,250,500,320,1200,560]
+
+ALPHA = 1
+BETA = 0.005
+
+SLOTS = 42
+
+# ----------------------------
+# INICIALIZAÇÃO POPULAÇÃO
+# ----------------------------
+
+populacao = []
+
+for i in range(POP):
+
+    lista = []
+
+    for p in programas:
+        for j in range(programas[p]["exib"]):
+            lista.append(p)
+
+    while len(lista) < SLOTS:
+        lista.append(random.choice(list(programas.keys())))
+
+    random.shuffle(lista)
+
+    populacao.append(lista[:SLOTS])
+
+
+# ----------------------------
+# ALGORITMO GENÉTICO
+# ----------------------------
+
+for g in range(GER):
+
+    fitness = []
+
+    for ind in populacao:
+
+        aud_total = 0
+        rec_total = 0
+        penal = 0
+
+        cont = Counter(ind)
+
+        receita_faixa = [0]*6
+        aud_dia = [0]*7
+
+        for i,p in enumerate(ind):
+
+            f = i % 6
+            d = i // 6
+
+            # audiência
+            if f == 4:
+                aud = programas[p]["aud"][4]
+            elif f in [2,5]:
+                aud = programas[p]["aud"][2]
+            else:
+                aud = programas[p]["aud"][f]
+
+            aud_total += aud
+            aud_dia[d] += aud
+
+            # receita
+            r = receita_base[f]
+
+            if programas[p]["genero"] == "Infantil":
+                r *= 0.5
+
+            rec_total += r
+            receita_faixa[f] += r
+
+            # restrições
+            c = programas[p]["class"]
+
+            if c == 16 and f in [1,2,3]:
+                penal += 1000
+
+            if c == 18 and f not in [0,5]:
+                penal += 1000
+
+            if c == 14 and f == 1:
+                penal += 1000
+
+            if programas[p]["publico"]=="Criança" and f not in [1,2,3]:
+                penal += 1000
+
+            if programas[p]["genero"]=="Jornalismo" and f==0:
+                penal += 800
+
+        # exibições mínimas
+        for p in programas:
+            if cont[p] < programas[p]["exib"]:
+                penal += 1000
+
+        # repetição diária
+        for d in range(7):
+
+            usados = []
+
+            for f in range(6):
+
+                p = ind[d*6+f]
+
+                if p in usados:
+                    penal += 500
+
+                usados.append(p)
+
+        # receita mínima
+        for f in range(6):
+            if receita_faixa[f] < receita_min[f]:
+                penal += 600
+
+        # equilíbrio audiência
+        if max(aud_dia)-min(aud_dia) > 20:
+            penal += 200
+
+        F = ALPHA*aud_total + BETA*rec_total
+
+        fitness.append(F-penal)
+
+    # estatísticas
+    fmax = max(fitness)
+    fmin = min(fitness)
+    fmed = sum(fitness)/len(fitness)
+
+    print(f"Geração {g}: min={fmin:.2f}  méd={fmed:.2f}  max={fmax:.2f}")
+
+    melhor = fitness.index(fmax)
+    elite = populacao[melhor][:]
+
+    # nova população
+    nova = [elite]
+
+    while len(nova) < POP:
+
+        cand = random.sample(range(POP),3)
+        p1 = populacao[max(cand,key=lambda x:fitness[x])]
+
+        cand = random.sample(range(POP),3)
+        p2 = populacao[max(cand,key=lambda x:fitness[x])]
+
+        if random.random() < CROSS:
+
+            pt = random.randint(1,SLOTS-1)
+
+            f1 = p1[:pt] + p2[pt:]
+            f2 = p2[:pt] + p1[pt:]
+
+        else:
+
+            f1 = p1[:]
+            f2 = p2[:]
+
+        if random.random() < MUT:
+
+            a,b = random.sample(range(SLOTS),2)
+            f1[a],f1[b] = f1[b],f1[a]
+
+        if random.random() < MUT:
+
+            a,b = random.sample(range(SLOTS),2)
+            f2[a],f2[b] = f2[b],f2[a]
+
+        nova.append(f1)
+
+        if len(nova) < POP:
+            nova.append(f2)
+
+    populacao = nova
+
+
+# ----------------------------
+# RESULTADO FINAL
+# ----------------------------
+
+best = populacao[0]
+
+print("\n## Grade Final\n")
+
+print("| Faixa | Seg | Ter | Qua | Qui | Sex | Sab | Dom |")
+print("|------|------|------|------|------|------|------|------|")
+
+for f in range(6):
+
+    linha = f"| {faixas[f]} "
+
+    for d in range(7):
+
+        p = best[d*6+f]
+        linha += f"| {p} "
+
+    linha += "|"
+
+    print(linha)
