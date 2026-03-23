@@ -52,7 +52,7 @@ A emissora dispõe de **20 programas** em seu catálogo, cada um com gênero, cl
 | P19 | Debate Político | Jornalismo | Livre | Adulto | 1 | 1 | 3 | 5 | 4 | 9 |
 | P20 | Filme de Terror | Cinema | 18 anos | Adulto | 1 | 3 | 1 | 2 | 3 | 10 |
 
-> **Total de exibições semanais contratadas:** $\sum = 47$ exibições, distribuídas nos 42 slots disponíveis com possibilidade de reexibição em slots restantes.
+> **Total de exibições semanais contratadas:** $\sum = 42$ exibições, distribuídas nos 42 slots disponíveis com possibilidade de reexibição em slots restantes.
 
 ---
 
